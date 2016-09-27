@@ -15,6 +15,24 @@ function getTwitterApi() {
     return twitter;
 }
 
+function getBotAuth(callback) {
+    Tweetbot.find({
+        // No criteria, assumes a single record in collection
+    }).limit(1).exec(function (err, tweetBots) {
+        if (err) {
+            sails.log.error(err);
+        }
+        if (!tweetBots) {
+            sails.log.error('Could not find bot auth. Is Mongo collection empty?');
+        }
+
+        sails.log('Found tweetbots "%s"', JSON.stringify(tweetBots));
+        // TO DO: Switch to promise instead of callback
+        // Assumption is we only ever fetch 1 record so return first index of array.
+       return callback(tweetBots[0]);
+    });
+}
+
 module.exports = {
     hi: function (req, res) {
         return res.send('Hi there!');
@@ -42,22 +60,34 @@ module.exports = {
     },
     authCallback: function (req, res) {
         var twitter = getTwitterApi();
-        var requestToken = 'HARD_CODED_RESULT_FROM_getTwitterRequestToken'; // TO DO: Stop hardcoding and store in DB
-        //console.log('req= ' + JSON.stringify(req));
-        var oauth_verifier = req.param('oauth_verifier');
-        console.log('oauth_verifier = ' + oauth_verifier);
-        var requestTokenSecret = 'HARD_CODED_RESULT_FROM_getTwitterRequestToken'; // TO DO: Stop hardcoding and store in DB
-        twitter.getAccessToken(requestToken, requestTokenSecret, oauth_verifier, function (error, accessToken, accessTokenSecret, results) {
-            if (error) {
-                console.log(error);
-            } else {
-                var url = 'http://localhost:1337/tweetbot/testTweet?accessToken=' + accessToken + '&accessTokenSecret=' + accessTokenSecret;
-                return res.send({
-                    urlToGoTo: url
-                });
-                //store accessToken and accessTokenSecret somewhere (associated to the user)
-                //Step 4: Verify Credentials belongs here
-            }
+
+        return getBotAuth(function (tweetBot) {
+            sails.log('getBotAuth callback: Found tweetBot "%s"', JSON.stringify(tweetBot));
+
+            var requestToken = tweetBot.requestToken;
+            sails.log('requestToken = ' + requestToken);
+            //console.log('req= ' + JSON.stringify(req));
+            var oauth_verifier = req.param('oauth_verifier');
+            console.log('oauth_verifier = ' + oauth_verifier);
+            var requestTokenSecret = tweetBot.requestTokenSecret;
+            sails.log('requestTokenSecret = ' + requestTokenSecret);
+
+            twitter.getAccessToken(requestToken, requestTokenSecret, oauth_verifier, function (error, accessToken, accessTokenSecret, results) {
+                if (error) {
+                    console.log('Could not get access token. FATAL ERROR:');
+                    console.log(error);
+                } else {
+                    var url = 'http://localhost:1337/tweetbot/testTweet?accessToken=' +
+                        accessToken + '&accessTokenSecret=' + accessTokenSecret;
+                    sails.log('TO DO: redirect user to:');
+                    sails.log(url);
+                    return res.send({
+                        urlToGoTo: url
+                    });
+                    //store accessToken and accessTokenSecret somewhere (associated to the user)
+                    //Step 4: Verify Credentials belongs here
+                }
+            });
         });
     },
     testTweet: function (req, res) {
@@ -67,7 +97,7 @@ module.exports = {
         var accessTokenSecret = req.param('accessTokenSecret');
         console.log('accessTokenSecret = ' + accessTokenSecret);
         twitter.statuses("update", {
-            status: "(ignore, testing tweet bot code) Hello world from tweetbot."
+            status: "(ignore, testing tweet bot code) Hello world from http://www.mymgm.org/ tweetbot."
         },
             accessToken,
             accessTokenSecret,
