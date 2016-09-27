@@ -8,6 +8,8 @@
 module.exports = {
 
   attributes: {
+  requestToken : { type: 'string' },
+  requestTokenSecret : { type: 'string' },
 
   }
 };

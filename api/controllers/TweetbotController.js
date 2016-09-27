@@ -8,9 +8,9 @@ var twitterAPI = require('node-twitter-api');
 
 function getTwitterApi() {
     var twitter = new twitterAPI({
-        consumerKey: sails.config.consumerKey,
-        consumerSecret: sails.config.consumerSecret,
-        callback: sails.config.callback
+        consumerKey: sails.config.twitter.consumerKey,
+        consumerSecret: sails.config.twitter.consumerSecret,
+        callback: sails.config.twitter.callback
     });
     return twitter;
 }
@@ -23,14 +23,19 @@ module.exports = {
         var twitter = getTwitterApi();
         twitter.getRequestToken(function (error, requestToken, requestTokenSecret, results) {
             if (error) {
-                return res.send("Error getting OAuth request token : " + error);
+                return res.send("Error getting OAuth request token : " + JSON.stringify(error));
             } else {
                 var url = 'https://twitter.com/oauth/authenticate?oauth_token=' + requestToken;
-                return res.send({
-                    error: error, requestToken: requestToken, requestTokenSecret: requestTokenSecret, results: results,
-                    urlToGoTo: url
-                });
-                //store token and tokenSecret somewhere, you'll need them later; redirect user
+
+                //store token and tokenSecret in Mongo DB, we'll need them later;
+                Tweetbot.create({ requestToken: requestToken, requestTokenSecret: requestTokenSecret }).exec(
+                    function createCB(err, created) {
+                        // TO DO: redirect user
+                        return res.send({
+                            error: error, requestToken: requestToken, requestTokenSecret: requestTokenSecret, results: results,
+                            urlToGoTo: url
+                        });
+                    });
             }
         });
 

@@ -65,6 +65,16 @@ module.exports.connections = {
   //   database: 'your_mongo_db_name_here' //optional
   // },
 
+  mymgmMongoDb: {
+    adapter: 'sails-mongo',
+    host: 'localhost', // defaults to `localhost` if omitted
+    port: 27017, // defaults to 27017 if omitted
+  //  user: 'username_here', // or omit if not relevant
+  //  password: 'password_here', // or omit if not relevant
+    database: 'mymgmtweetbot' // or omit if not relevant
+  }
+
+
   /***************************************************************************
   *                                                                          *
   * PostgreSQL is another officially supported relational database.          *
