@@ -20,6 +20,7 @@
     "grunt-sync": "0.5.2",
     "include-all": "~0.1.6",
     "moment": "^2.15.1",
+    "node-twitter-api": "^1.8.0",
     "rc": "1.0.1",
     "request": "^2.75.0",
     "sails": "~0.12.4",
