@@ -5,6 +5,8 @@
  * @help        :: See http://sailsjs.org/#!/documentation/concepts/Controllers
  */
 var twitterAPI = require('node-twitter-api');
+var moment = require('moment');
+var request = require('request');
 
 function getTwitterApi() {
     var twitter = new twitterAPI({
@@ -29,7 +31,34 @@ function getBotAuth(callback) {
         sails.log('Found tweetbots "%s"', JSON.stringify(tweetBots));
         // TO DO: Switch to promise instead of callback
         // Assumption is we only ever fetch 1 record so return first index of array.
-       return callback(tweetBots[0]);
+        return callback(tweetBots[0]);
+    });
+}
+
+function sendTweet(status) {
+    var twitter = getTwitterApi();
+    return getBotAuth(function (tweetBot) {
+        sails.log('getBotAuth callback: Found tweetBot "%s"', JSON.stringify(tweetBot));
+        var accessToken = tweetBot.accessToken;
+        var accessTokenSecret = tweetBot.accessTokenSecret;
+
+        twitter.statuses("update", {
+            status: status
+        },
+            accessToken,
+            accessTokenSecret,
+            function (error, data, response) {
+                if (error) {
+                    sails.log({
+                        error: error, data: data
+                    });
+                } else {
+                    sails.log({
+                        data: data
+                    });
+                }
+            }
+        );
     });
 }
 
@@ -58,6 +87,7 @@ module.exports = {
         });
 
     },
+    // TO DO: Refactor
     authCallback: function (req, res) {
         var twitter = getTwitterApi();
 
@@ -77,8 +107,22 @@ module.exports = {
                     console.log('Could not get access token. FATAL ERROR:');
                     console.log(error);
                 } else {
-                    var url = 'http://localhost:1337/tweetbot/testTweet?accessToken=' +
-                        accessToken + '&accessTokenSecret=' + accessTokenSecret;
+                    var updatedData = {
+                        accessToken: accessToken,
+                        accessTokenSecret: accessTokenSecret
+                    };
+
+                    Tweetbot.update({ requestToken: tweetBot.requestToken, requestTokenSecret: tweetBot.requestTokenSecret },
+                        updatedData).exec(function afterwards(err, updated) {
+
+                            if (err) {
+                                sails.log.error(err);
+                            }
+
+                            sails.log('Saved accessToken and accessTokenSecret to Mongo');
+                        });
+
+                    var url = 'http://localhost:1337/tweetbot/testTweet';
                     sails.log('TO DO: redirect user to:');
                     sails.log(url);
                     return res.send({
@@ -91,28 +135,50 @@ module.exports = {
         });
     },
     testTweet: function (req, res) {
-        var twitter = getTwitterApi();
-        var accessToken = req.param('accessToken');
-        console.log('accessToken = ' + accessToken);
-        var accessTokenSecret = req.param('accessTokenSecret');
-        console.log('accessTokenSecret = ' + accessTokenSecret);
-        twitter.statuses("update", {
-            status: "(ignore, testing tweet bot code) Hello world from http://www.mymgm.org/ tweetbot."
-        },
-            accessToken,
-            accessTokenSecret,
-            function (error, data, response) {
-                if (error) {
-                    return res.send({
-                        error: error, data: data
-                    });
-                } else {
-                    return res.send({
-                        data: data
-                    });
+        sendTweet("(ignore, testing tweet bot code) Hello world from http://www.mymgm.org/ tweetbot.");
+        res.send("Sending tweet!");
+    },
+    tweetTodaysEvents: function (req, res) {
+        sails.log('tweetTodaysEvents called!');
+        // Check for any events happening today
+        // var eventsUrl = 'http://localhost:5000/api/localeventsapi';
+        var eventsUrl = 'http://www.mymgm.org/api/localeventsapi';
+        request(eventsUrl, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                sails.log('body');
+                sails.log(body);
+                var events = JSON.parse(body);
+                sails.log('events');
+                sails.log(events);
+
+                sails.log('events.length:');
+                sails.log(events.length);
+                for (var i = 0; i < events.length; i++) {
+                    var event = events[i];
+                    sails.log('event:');
+                    sails.log(event);
+                    var eventStartDate = moment(event.startDate);
+                    var isToday = eventStartDate.isSame(new Date(), "day");
+                    if (isToday) {
+                        sails.log('*** Starting to send tweet!');
+                        var status = 'Today in #mymgm @ - "' + event.title + 
+                        '" Get the details here: ' + event.url;
+                        sendTweet(status);
+                    }
                 }
+
+                sails.log('tweetTodaysEvents done tweeting (if any)!');
+
+            } else {
+                sails.log('error:');
+                sails.log(error);
+                sails.log('body:');
+                sails.log(body);
             }
-        );
+        });
+
+        res.send("Sending tweets (if any events today)!");
     }
+
 };
 
