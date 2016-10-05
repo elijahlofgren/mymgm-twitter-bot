@@ -2,6 +2,14 @@
 
 a [Sails](http://sailsjs.org) application
 
+## Install Instructions:
+
+Clone this repo
+
+Run: npm install
+
+## How to run the app
+
 To start it:
 
 cd <checkout-location>
