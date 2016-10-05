@@ -4,6 +4,10 @@ a [Sails](http://sailsjs.org) application
 
 ## Install Instructions:
 
+Install Sails if you haven't already
+
+sudo npm -g install sails
+
 Clone this repo
 
 Run: npm install
@@ -12,7 +16,8 @@ Run: npm install
 
 To start it:
 
-cd <checkout-location>
+cd [checkout-location]
+
 sails lift
 
 Then go to:
