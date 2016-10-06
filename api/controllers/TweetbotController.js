@@ -141,33 +141,64 @@ module.exports = {
     tweetTodaysEvents: function (req, res) {
         sails.log('tweetTodaysEvents called!');
         // Check for any events happening today
-        // var eventsUrl = 'http://localhost:5000/api/localeventsapi';
-        var eventsUrl = 'http://www.mymgm.org/api/localeventsapi';
+        var eventsUrl = 'http://localhost:5000/api/localeventsapi';
+        // var eventsUrl = 'http://www.mymgm.org/api/localeventsapi';
         request(eventsUrl, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                sails.log('body');
-                sails.log(body);
+                // sails.log('body');
+                // sails.log(body);
                 var events = JSON.parse(body);
-                sails.log('events');
-                sails.log(events);
+                //   sails.log('events');
+                //   sails.log(events);
 
                 sails.log('events.length:');
                 sails.log(events.length);
+                var foundEventForToday = false;
                 for (var i = 0; i < events.length; i++) {
                     var event = events[i];
-                    sails.log('event:');
-                    sails.log(event);
+                    //sails.log('event:');
+                    //sails.log(event);
                     var eventStartDate = moment(event.startDate);
                     var isToday = eventStartDate.isSame(new Date(), "day");
                     if (isToday) {
-                        sails.log('*** Starting to send tweet!');
-                        var status = 'Today in #mymgm @ - "' + event.title + 
-                        '" Get the details here: ' + event.url;
-                        sendTweet(status);
+                        foundEventForToday = true;
+                        sails.log('*** Starting to compose tweet!');
+                        var statusNoUrl = 'Today in #mymgm - "' + event.title +
+                            '" Get the details here: ';
+                        var status = statusNoUrl + event.url;
+
+                        sails.log('Status = ');
+                        sails.log(status);
+                        if (statusNoUrl.length > 117) {
+                            sails.log('longer than 117 without URL, trying another one ');
+                            statusNoUrl = 'Today in #mymgm "' + event.title +
+                                '" ';
+                            status = statusNoUrl + event.url;
+                            sails.log('Status = ');
+                            sails.log(status);
+
+
+                            if (statusNoUrl.length > 117) {
+                                var tempStatus = 'Today in #mymgm "" ';
+                                // Use 144 so we can include "..."
+                                var maxTitle = 114 - tempStatus.length;
+
+                                status = 'Today in #mymgm "' +
+                                    event.title.substring(0, maxTitle) + "..." +
+                                    '" ' + event.url;
+                                sails.log('Status = ');
+                                sails.log(status);
+                            }
+
+                            sendTweet(status);
+                        }
                     }
                 }
-
-                sails.log('tweetTodaysEvents done tweeting (if any)!');
+                if (foundEventForToday) {
+                    sails.log('tweetTodaysEvents done attempt at tweeting!');
+                } else {
+                    sails.log("Didn't find any events to tweet about today.");
+                }
 
             } else {
                 sails.log('error:');
@@ -177,7 +208,7 @@ module.exports = {
             }
         });
 
-        res.send("Sending tweets (if any events today)!");
+        res.send("Attempting to send tweets (if any events today)!");
     }
 
 };
