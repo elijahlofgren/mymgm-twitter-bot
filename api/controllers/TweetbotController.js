@@ -35,6 +35,38 @@ function getBotAuth(callback) {
     });
 }
 
+function generateTweet(event) {
+    sails.log('*** Starting to compose tweet!');
+    var statusNoUrl = 'Today in #mymgm - "' + event.title +
+        '" Get the details here: ';
+    var status = statusNoUrl + event.url;
+
+    sails.log('Status = ');
+    sails.log(status);
+    if (statusNoUrl.length > 117) {
+        sails.log('longer than 117 without URL, trying another one ');
+        statusNoUrl = 'Today in #mymgm "' + event.title +
+            '" ';
+        status = statusNoUrl + event.url;
+        sails.log('Status = ');
+        sails.log(status);
+
+
+        if (statusNoUrl.length > 117) {
+            var tempStatus = 'Today in #mymgm "" ';
+            // Use 144 so we can include "..."
+            var maxTitle = 114 - tempStatus.length;
+
+            status = 'Today in #mymgm "' +
+                event.title.substring(0, maxTitle) + "..." +
+                '" ' + event.url;
+            sails.log('Status = ');
+            sails.log(status);
+        }
+    }
+    return status;
+}
+
 function sendTweet(status) {
     var twitter = getTwitterApi();
     return getBotAuth(function (tweetBot) {
@@ -162,36 +194,8 @@ module.exports = {
                     var isToday = eventStartDate.isSame(new Date(), "day");
                     if (isToday) {
                         foundEventForToday = true;
-                        sails.log('*** Starting to compose tweet!');
-                        var statusNoUrl = 'Today in #mymgm - "' + event.title +
-                            '" Get the details here: ';
-                        var status = statusNoUrl + event.url;
-
-                        sails.log('Status = ');
-                        sails.log(status);
-                        if (statusNoUrl.length > 117) {
-                            sails.log('longer than 117 without URL, trying another one ');
-                            statusNoUrl = 'Today in #mymgm "' + event.title +
-                                '" ';
-                            status = statusNoUrl + event.url;
-                            sails.log('Status = ');
-                            sails.log(status);
-
-
-                            if (statusNoUrl.length > 117) {
-                                var tempStatus = 'Today in #mymgm "" ';
-                                // Use 144 so we can include "..."
-                                var maxTitle = 114 - tempStatus.length;
-
-                                status = 'Today in #mymgm "' +
-                                    event.title.substring(0, maxTitle) + "..." +
-                                    '" ' + event.url;
-                                sails.log('Status = ');
-                                sails.log(status);
-                            }
-
-                            sendTweet(status);
-                        }
+                        var status = generateTweet(event);
+                        sendTweet(status);
                     }
                 }
                 if (foundEventForToday) {
