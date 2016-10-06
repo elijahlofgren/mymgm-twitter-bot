@@ -141,8 +141,8 @@ module.exports = {
     tweetTodaysEvents: function (req, res) {
         sails.log('tweetTodaysEvents called!');
         // Check for any events happening today
-        var eventsUrl = 'http://localhost:5000/api/localeventsapi';
-        // var eventsUrl = 'http://www.mymgm.org/api/localeventsapi';
+        // var eventsUrl = 'http://localhost:5000/api/localeventsapi';
+        var eventsUrl = 'http://www.mymgm.org/api/localeventsapi';
         request(eventsUrl, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 // sails.log('body');
